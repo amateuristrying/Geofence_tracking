@@ -34,11 +34,15 @@ export interface NavixyEvent {
 // Use local proxy by default to avoid CORS, unless explicitly overridden by a non-standard env var?
 // Actually, for this fix, we simply want to force the proxy usage if we are in the browser.
 // If process.env.NEXT_PUBLIC_NAVIXY_API_URL is set, it overrides, so we need to change precedence or ignore it if it matches the default remote.
-const BASE_URL = '/api/navixy';
+const BASE_URL = typeof window === 'undefined' ? 'https://api.navixy.com/v2' : '/api/navixy';
 
 async function fetchJson(endpoint: string, options?: RequestInit) {
     const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
-    console.log(`[fetchJson] Fetching: ${url}`);
+
+    // Server-side logging for Vercel debugging
+    if (typeof window === 'undefined') {
+        console.log(`[NavixyService] Server-side fetch: ${url}`);
+    }
 
     try {
         const response = await fetch(url, options);
@@ -229,15 +233,15 @@ export const NavixyService = {
      * Get trips report for a tracker.
      */
     getReportTrips: async (trackerId: number, from: string, to: string, sessionKey: string): Promise<any[]> => {
-         const data = await fetchJson(
+        const data = await fetchJson(
             `/report/trips?tracker_id=${trackerId}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&hash=${sessionKey}`
         );
         return (data && data.list) ? data.list : [];
     },
 
-     /**
-     * Get last known position for a tracker.
-     */
+    /**
+    * Get last known position for a tracker.
+    */
     getLastPosition: async (trackerId: number, sessionKey: string): Promise<any | null> => {
         const data = await fetchJson(`/tracker/get_last_position?tracker_id=${trackerId}&hash=${sessionKey}`);
         return (data && data.state) ? data.state : null;

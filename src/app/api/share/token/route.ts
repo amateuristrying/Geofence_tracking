@@ -4,13 +4,13 @@ import { getOrCreateShareToken } from '@/lib/share-utils';
 
 export async function POST(req: NextRequest) {
     try {
-        const { zoneId, region } = await req.json();
+        const { zoneId, region, metadata } = await req.json();
 
         if (!zoneId || !region) {
             return NextResponse.json({ error: 'Missing zoneId or region' }, { status: 400 });
         }
 
-        const token = await getOrCreateShareToken(Number(zoneId), region);
+        const token = await getOrCreateShareToken(Number(zoneId), region, metadata);
         return NextResponse.json({ token });
     } catch (error: any) {
         console.error('Error in /api/share/token:', error);

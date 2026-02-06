@@ -458,7 +458,15 @@ export default function GeofencePanel({
                                             method: 'POST',
                                             body: JSON.stringify({
                                                 zoneId: selectedZone.id,
-                                                region: region
+                                                region: region,
+                                                metadata: {
+                                                    name: selectedZone.name,
+                                                    type: selectedZone.type,
+                                                    color: selectedZone.color,
+                                                    points: selectedZone.points,
+                                                    center: selectedZone.center,
+                                                    radius: selectedZone.radius
+                                                }
                                             }),
                                         });
                                         const data = await res.json();
