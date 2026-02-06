@@ -42,13 +42,18 @@ export class NavixySocket {
             return;
         }
 
-        // Handle relative URLs (e.g., '/api/navixy') by resolving against current origin
+        // Vercel/Next.js dynamic routes do not support WebSockets.
+        // We MUST connect directly to Navixy for the WebSocket part.
         let distinctUrl = this.apiBaseUrl;
-        if (this.apiBaseUrl.startsWith('/')) {
-            distinctUrl = `${window.location.protocol}//${window.location.host}${this.apiBaseUrl}`;
-        } else if (!this.apiBaseUrl.startsWith('http')) {
-            // Assume it's just a hostname
-            distinctUrl = `https://${this.apiBaseUrl}`;
+
+        // If the URL is a relative proxy path (like '/api/navixy'), it won't work for WebSockets on Vercel.
+        // Default to the direct Navixy API URL for the WebSocket part.
+        if (this.apiBaseUrl === '/api/navixy' || this.apiBaseUrl.startsWith('/')) {
+            distinctUrl = 'https://api.navixy.com/v2';
+        }
+
+        if (!distinctUrl.startsWith('http')) {
+            distinctUrl = `https://${distinctUrl}`;
         }
 
         // Convert HTTP/HTTPS to WS/WSS
