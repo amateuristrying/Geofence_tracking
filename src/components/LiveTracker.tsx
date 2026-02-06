@@ -78,6 +78,23 @@ export default function LiveTracker() {
         };
         initTrackers();
     }, [sessionKey]);
+    useEffect(() => {
+        const triggerObserver = async () => {
+            try {
+                await fetch('/api/cron/geofence-observer');
+                console.log('[Self-Update] Geofence states synchronized with Supabase.');
+            } catch (err) {
+                console.error('[Self-Update] Failed to sync geofences:', err);
+            }
+        };
+
+        // Initial trigger
+        triggerObserver();
+
+        // Run every 2 minutes while tab is open
+        const interval = setInterval(triggerObserver, 120000);
+        return () => clearInterval(interval);
+    }, []);
 
 
     const { trackerStates, loading } = useNavixyRealtime(trackerIds, sessionKey);
