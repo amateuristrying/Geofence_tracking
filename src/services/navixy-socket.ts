@@ -38,17 +38,16 @@ export class NavixySocket {
         private readonly apiBaseUrl: string = '/api/navixy'
     ) {
         if (typeof window === 'undefined') {
-            this.url = ''; // Server-side safety
+            this.url = '';
             return;
         }
 
-        // Vercel/Next.js dynamic routes do not support WebSockets.
-        // We MUST connect directly to Navixy for the WebSocket part.
+        // FORCE DIRECT CONNECTION ON VERCEL
+        const isVercel = window.location.hostname.includes('vercel.app');
         let distinctUrl = this.apiBaseUrl;
 
-        // If the URL is a relative proxy path (like '/api/navixy'), it won't work for WebSockets on Vercel.
-        // Default to the direct Navixy API URL for the WebSocket part.
-        if (this.apiBaseUrl === '/api/navixy' || this.apiBaseUrl.startsWith('/')) {
+        if (isVercel || this.apiBaseUrl === '/api/navixy' || this.apiBaseUrl.startsWith('/')) {
+            if (isVercel) console.log('[Socket] Vercel environment detected. Forcing direct Navixy connection.');
             distinctUrl = 'https://api.navixy.com/v2';
         }
 
@@ -56,13 +55,12 @@ export class NavixySocket {
             distinctUrl = `https://${distinctUrl}`;
         }
 
-        // Convert HTTP/HTTPS to WS/WSS
         const isSecure = distinctUrl.startsWith('https');
         const protocol = isSecure ? 'wss://' : 'ws://';
-
-        // Remove protocol and trailing slash
         const host = distinctUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
         this.url = `${protocol}${host}/event/subscription`;
+
+        console.log(`[Socket] Version Check: Aggressive Direct Logic v3.0 (${new Date().toLocaleTimeString()})`);
     }
 
     connect(sessionKey: string, trackerIds: number[], onUpdate: (states: Record<number, NavixyTrackerState>) => void) {
