@@ -7,14 +7,16 @@ export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const token = searchParams.get('token');
+        console.log(`[API] Resolving share token: ${token}`);
 
         if (!token) {
-            return NextResponse.json({ error: 'Missing token' }, { status: 400 });
+            return NextResponse.json({ error: 'Missing token parameter' }, { status: 400 });
         }
 
         const share = await resolveShareToken(token);
         if (!share) {
-            return NextResponse.json({ error: 'Invalid or expired token' }, { status: 404 });
+            console.error(`[API] Token not found in database: ${token}`);
+            return NextResponse.json({ error: 'This share link does not exist or has expired.' }, { status: 404 });
         }
 
         const sessionKey = share.region === 'TZ'

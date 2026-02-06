@@ -43,13 +43,15 @@ export async function getOrCreateShareToken(navixyZoneId: number, region: 'TZ' |
 }
 
 export async function resolveShareToken(token: string): Promise<GeofenceShare | null> {
-    const { data, error } = await supabase
+    const adminSupabase = getSupabaseAdmin();
+    const { data, error } = await adminSupabase
         .from('geofence_shares')
         .select('*')
         .eq('share_token', token)
         .single();
 
     if (error || !data) {
+        console.error('Resolve token error:', error);
         return null;
     }
 
