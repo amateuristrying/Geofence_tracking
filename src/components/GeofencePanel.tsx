@@ -5,7 +5,7 @@ import {
     MapPin, Plus, Trash2, Clock, ArrowLeft,
     Anchor, Files, Warehouse, Truck, Target,
     Hexagon, Route, Circle,
-    Eye, Check, X, Square
+    Eye, Check, X, Square, RefreshCw
 } from 'lucide-react';
 import type { Geofence, CreateZonePayload, GeofenceCategory } from '../types/geofence';
 
@@ -72,6 +72,7 @@ export default function GeofencePanel({
 
     // Selection for monitoring - always available
     const [selectedForMonitor, setSelectedForMonitor] = useState<Set<number>>(new Set());
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Force re-render every minute for duration updates
     const [, setTick] = useState(0);
@@ -152,6 +153,15 @@ export default function GeofencePanel({
         setSelectedForMonitor(new Set());
     };
 
+    const handleManualRefresh = async (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        if (onRefresh) {
+            setIsRefreshing(true);
+            await onRefresh();
+            setTimeout(() => setIsRefreshing(false), 1000);
+        }
+    };
+
     // LIST VIEW
     if (view === 'list') {
         const hasSelections = selectedForMonitor.size > 0;
@@ -179,12 +189,14 @@ export default function GeofencePanel({
                             <MapPin className="mx-auto text-slate-300 mb-3" size={32} />
                             <p className="text-sm font-medium text-slate-500">No geofence zones</p>
                             <p className="text-xs text-slate-400 mt-1">Create your first zone to start monitoring</p>
-                            <button
-                                onClick={() => setView('create')}
-                                className="mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700"
-                            >
-                                <Plus size={12} className="inline mr-1" /> Create Zone
-                            </button>
+                            {viewMode === 'unlocked' && (
+                                <button
+                                    onClick={() => setView('create')}
+                                    className="mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700"
+                                >
+                                    <Plus size={12} className="inline mr-1" /> Create Zone
+                                </button>
+                            )}
                         </div>
                     ) : (
                         sortedZones.map(zone => {
@@ -204,18 +216,20 @@ export default function GeofencePanel({
                                     <div className="flex items-center justify-between">
                                         {/* Left side: Checkbox + Zone info */}
                                         <div className="flex items-center gap-2.5 min-w-0">
-                                            {/* Checkbox for monitoring selection */}
-                                            <button
-                                                onClick={(e) => handleCheckboxToggle(e, zone.id)}
-                                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${isSelectedForMonitor
-                                                    ? 'bg-green-500 border-green-500 hover:bg-green-600'
-                                                    : 'border-slate-300 bg-white hover:border-green-400 hover:bg-green-50'
-                                                    } ${selectedForMonitor.size >= MAX_MONITOR_ZONES && !isSelectedForMonitor ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                disabled={selectedForMonitor.size >= MAX_MONITOR_ZONES && !isSelectedForMonitor}
-                                                title={isSelectedForMonitor ? 'Remove from monitoring' : 'Add to monitoring'}
-                                            >
-                                                {isSelectedForMonitor && <Check size={12} className="text-white" />}
-                                            </button>
+                                            {/* Checkbox for monitoring selection - Only in Unlocked */}
+                                            {viewMode === 'unlocked' && (
+                                                <button
+                                                    onClick={(e) => handleCheckboxToggle(e, zone.id)}
+                                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all shrink-0 ${isSelectedForMonitor
+                                                        ? 'bg-green-500 border-green-500 hover:bg-green-600'
+                                                        : 'border-slate-300 bg-white hover:border-green-400 hover:bg-green-50'
+                                                        } ${selectedForMonitor.size >= MAX_MONITOR_ZONES && !isSelectedForMonitor ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    disabled={selectedForMonitor.size >= MAX_MONITOR_ZONES && !isSelectedForMonitor}
+                                                    title={isSelectedForMonitor ? 'Remove from monitoring' : 'Add to monitoring'}
+                                                >
+                                                    {isSelectedForMonitor && <Check size={12} className="text-white" />}
+                                                </button>
+                                            )}
 
                                             {/* Zone color dot */}
                                             <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: zone.color }}></div>
@@ -249,6 +263,13 @@ export default function GeofencePanel({
                                                 }`}>
                                                 {zone.vehicleCount}
                                             </span>
+                                            <button
+                                                onClick={handleManualRefresh}
+                                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                title="Refresh zone data"
+                                            >
+                                                <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -257,30 +278,32 @@ export default function GeofencePanel({
                     )}
                 </div>
 
-                {/* Footer with Monitor button - Always visible */}
-                <div className="p-3 border-t border-gray-100 bg-white">
-                    {hasSelections ? (
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handleClearSelection}
-                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 border border-gray-200 text-slate-600 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                <X size={12} /> Clear
-                            </button>
-                            <button
-                                onClick={handleConfirmMonitorSelection}
-                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors"
-                            >
-                                <Eye size={12} /> + Monitor ({selectedForMonitor.size})
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="text-center text-xs text-slate-400 py-1">
-                            <Eye size={14} className="inline mr-1 opacity-50" />
-                            Select zones using checkboxes to monitor them
-                        </div>
-                    )}
-                </div>
+                {/* Footer with Monitor button - Only in Unlocked */}
+                {viewMode === 'unlocked' && (
+                    <div className="p-3 border-t border-gray-100 bg-white">
+                        {hasSelections ? (
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleClearSelection}
+                                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 border border-gray-200 text-slate-600 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    <X size={12} /> Clear
+                                </button>
+                                <button
+                                    onClick={handleConfirmMonitorSelection}
+                                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors"
+                                >
+                                    <Eye size={12} /> + Monitor ({selectedForMonitor.size})
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center text-xs text-slate-400 py-1">
+                                <Eye size={14} className="inline mr-1 opacity-50" />
+                                Select zones using checkboxes to monitor them
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         );
     }
@@ -426,6 +449,13 @@ export default function GeofencePanel({
                             </span>
                         </div>
                     </div>
+                    <button
+                        onClick={handleManualRefresh}
+                        className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 text-slate-600 transition-all shadow-sm"
+                        title="Refresh zone data"
+                    >
+                        <RefreshCw size={16} className={isRefreshing ? "animate-spin text-blue-500" : ""} />
+                    </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">

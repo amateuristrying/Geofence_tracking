@@ -10,7 +10,7 @@ import RealtimeInsights from './RealtimeInsights';
 import GeofencePanel from './GeofencePanel';
 
 import NavixyDataInspector from './NavixyDataInspector';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { NavixyService } from '../services/navixy';
 import { cn } from '@/lib/utils';
 import type { CreateZonePayload } from '../types/geofence';
@@ -41,6 +41,7 @@ export default function LiveTracker() {
 
     // Monitored Geofences State (user-selected from GeofencePanel)
     const [monitoredZoneIds, setMonitoredZoneIds] = useState<number[]>([]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Region/Ops State
     const [region, setRegion] = useState<'TZ' | 'ZM'>(regionParam || 'TZ');
@@ -151,6 +152,13 @@ export default function LiveTracker() {
         setDrawnPayload(null);
     };
 
+    const handleGlobalRefresh = async () => {
+        setIsRefreshing(true);
+        await refreshZones();
+        // Artificial delay for feedback
+        setTimeout(() => setIsRefreshing(false), 1000);
+    };
+
     return (
         <div className="space-y-6 max-w-7xl mx-auto pt-4">
             {/* Branding & Header - Hidden in Locked Mode */}
@@ -194,7 +202,22 @@ export default function LiveTracker() {
 
                         <div className="flex items-center gap-2">
                             {loading && <Loader2 className="animate-spin text-blue-500" size={20} />}
-                            {!loading && <div className="flex items-center gap-1.5 text-xs text-green-600 font-bold"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-green-200 shadow-lg" /> Live System Active</div>}
+                            {!loading && (
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={handleGlobalRefresh}
+                                        className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-slate-600 transition-all shadow-sm flex items-center gap-2 group"
+                                        title="Refresh all data"
+                                    >
+                                        <RefreshCw size={14} className={cn("transition-transform", isRefreshing && "animate-spin text-blue-500")} />
+                                        <span className="text-xs font-bold">Refresh</span>
+                                    </button>
+                                    <div className="flex items-center gap-1.5 text-xs text-green-600 font-bold">
+                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-green-200 shadow-lg" />
+                                        Live System Active
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -207,9 +230,19 @@ export default function LiveTracker() {
                         <h1 className="text-xl font-bold text-slate-900">Unifleet Monitoring</h1>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{region} Operations State</p>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-green-600 font-bold">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                        LIVE SYSTEM ACTIVE
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={handleGlobalRefresh}
+                            className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-slate-600 transition-all shadow-sm flex items-center gap-2"
+                            title="Refresh data"
+                        >
+                            <RefreshCw size={14} className={cn(isRefreshing && "animate-spin text-blue-500")} />
+                            <span className="text-[10px] font-bold uppercase">Refresh</span>
+                        </button>
+                        <div className="flex items-center gap-1.5 text-xs text-green-600 font-bold">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            LIVE SYSTEM ACTIVE
+                        </div>
                     </div>
                 </div>
             )}
