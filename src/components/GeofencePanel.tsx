@@ -510,82 +510,88 @@ export default function GeofencePanel({
                         <div>
                             <h3 className="text-xs font-bold text-slate-600 mb-2">Vehicles Currently Inside</h3>
                             <div className="space-y-1">
-                                {selectedZone.vehicleIds.map(tId => {
-                                    const occupant = selectedZone.occupants?.[tId];
-                                    const now = Date.now();
-                                    const durationMs = occupant ? now - occupant.entryTime : 0;
+                                {[...selectedZone.vehicleIds]
+                                    .sort((a, b) => {
+                                        const entryA = selectedZone.occupants?.[a]?.entryTime || 0;
+                                        const entryB = selectedZone.occupants?.[b]?.entryTime || 0;
+                                        return entryB - entryA; // Latest first
+                                    })
+                                    .map(tId => {
+                                        const occupant = selectedZone.occupants?.[tId];
+                                        const now = Date.now();
+                                        const durationMs = occupant ? now - occupant.entryTime : 0;
 
-                                    // Helper for formatting
-                                    const formatDwellTime = (ms: number) => {
-                                        if (ms < 60000) return 'Just now';
-                                        const totalMins = Math.floor(ms / 60000);
-                                        const totalHrs = Math.floor(totalMins / 60);
-                                        const totalDays = Math.floor(totalHrs / 24);
+                                        // Helper for formatting
+                                        const formatDwellTime = (ms: number) => {
+                                            if (ms < 60000) return 'Just now';
+                                            const totalMins = Math.floor(ms / 60000);
+                                            const totalHrs = Math.floor(totalMins / 60);
+                                            const totalDays = Math.floor(totalHrs / 24);
 
-                                        if (totalDays >= 365) {
-                                            const y = Math.floor(totalDays / 365);
-                                            const remDays = totalDays % 365;
-                                            const mo = Math.floor(remDays / 30);
-                                            const d = remDays % 30;
-                                            return `${y}y ${mo}mo ${d}d`;
+                                            if (totalDays >= 365) {
+                                                const y = Math.floor(totalDays / 365);
+                                                const remDays = totalDays % 365;
+                                                const mo = Math.floor(remDays / 30);
+                                                const d = remDays % 30;
+                                                return `${y}y ${mo}mo ${d}d`;
+                                            }
+                                            if (totalDays >= 30) {
+                                                const mo = Math.floor(totalDays / 30);
+                                                const d = totalDays % 30;
+                                                return `${mo}mo ${d}d`;
+                                            }
+                                            if (totalDays >= 1) {
+                                                const h = totalHrs % 24;
+                                                return `${totalDays}d ${h}h`;
+                                            }
+                                            if (totalHrs > 0) {
+                                                return `${totalHrs}h ${totalMins % 60}m`;
+                                            }
+                                            return `${totalMins}m`;
+                                        };
+
+                                        const durationStr = formatDwellTime(durationMs);
+
+                                        // Severity color
+                                        let dotColor = 'bg-blue-500';
+                                        let timerColor = 'text-slate-400';
+
+                                        if (durationMs > 4 * 60 * 60 * 1000) { // > 4 hours
+                                            dotColor = 'bg-red-500';
+                                            timerColor = 'text-red-500';
+                                        } else if (durationMs > 1 * 60 * 60 * 1000) { // > 1 hour
+                                            dotColor = 'bg-amber-500';
+                                            timerColor = 'text-amber-600';
                                         }
-                                        if (totalDays >= 30) {
-                                            const mo = Math.floor(totalDays / 30);
-                                            const d = totalDays % 30;
-                                            return `${mo}mo ${d}d`;
-                                        }
-                                        if (totalDays >= 1) {
-                                            const h = totalHrs % 24;
-                                            return `${totalDays}d ${h}h`;
-                                        }
-                                        if (totalHrs > 0) {
-                                            return `${totalHrs}h ${totalMins % 60}m`;
-                                        }
-                                        return `${totalMins}m`;
-                                    };
 
-                                    const durationStr = formatDwellTime(durationMs);
-
-                                    // Severity color
-                                    let dotColor = 'bg-blue-500';
-                                    let timerColor = 'text-slate-400';
-
-                                    if (durationMs > 4 * 60 * 60 * 1000) { // > 4 hours
-                                        dotColor = 'bg-red-500';
-                                        timerColor = 'text-red-500';
-                                    } else if (durationMs > 1 * 60 * 60 * 1000) { // > 1 hour
-                                        dotColor = 'bg-amber-500';
-                                        timerColor = 'text-amber-600';
-                                    }
-
-                                    return (
-                                        <div
-                                            key={tId}
-                                            onClick={() => { setShowVehicleToast(true); setTimeout(() => setShowVehicleToast(false), 4000); }}
-                                            className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors relative"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${dotColor} ${durationMs < 60000 ? 'animate-pulse' : ''}`}></div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-medium text-slate-700">
-                                                        {trackerLabels[tId] || `Tracker #${tId}`}
-                                                    </span>
-                                                    {occupant?.status && (
-                                                        <span className="text-[10px] text-slate-400 font-medium">
-                                                            {occupant.status}
+                                        return (
+                                            <div
+                                                key={tId}
+                                                onClick={() => { setShowVehicleToast(true); setTimeout(() => setShowVehicleToast(false), 4000); }}
+                                                className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors relative"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-2 h-2 rounded-full ${dotColor} ${durationMs < 60000 ? 'animate-pulse' : ''}`}></div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-medium text-slate-700">
+                                                            {trackerLabels[tId] || `Tracker #${tId}`}
                                                         </span>
-                                                    )}
+                                                        {occupant?.status && (
+                                                            <span className="text-[10px] text-slate-400 font-medium">
+                                                                {occupant.status}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <Clock size={10} className={timerColor} />
+                                                    <span className={`text-[10px] font-bold ${timerColor}`}>
+                                                        {durationStr}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-1">
-                                                <Clock size={10} className={timerColor} />
-                                                <span className={`text-[10px] font-bold ${timerColor}`}>
-                                                    {durationStr}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
                             </div>
                         </div>
                     )}
