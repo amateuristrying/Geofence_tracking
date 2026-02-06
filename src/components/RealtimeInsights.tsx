@@ -168,30 +168,35 @@ export default function RealtimeInsights({
     if (currentView === 'summary') {
         return (
             <div className="space-y-6">
-                {/* Active Geofences Card */}
+                {/* Track Geofences Card */}
                 <div className="flex justify-center">
                     <div
                         onClick={() => onViewChange('geofences')}
                         className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 w-full max-w-2xl flex flex-col cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
                     >
                         <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <MapPin size={14} /> Active Geofences
+                            <MapPin size={14} /> Track Geofences
                         </h3>
                         <div className="grid grid-cols-2 gap-3 flex-1 content-start">
-                            {Object.entries(analysis.zoneOccupancy)
-                                .sort(([, countA], [, countB]) => countB - countA)
-                                .slice(0, 4)
-                                .map(([name, count]) => (
-                                    <div key={name} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-100">
+                            {(zones && zones.length > 0 ? [...zones] : [])
+                                .sort((a, b) => b.vehicleCount - a.vehicleCount)
+                                .slice(0, 6)
+                                .map((zone) => (
+                                    <div key={zone.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-100">
                                         <div className="flex items-center gap-2 overflow-hidden">
-                                            <div className={`w-2 h-2 shrink-0 rounded-full ${count > 0 ? 'bg-blue-500 animate-pulse' : 'bg-slate-300'}`}></div>
-                                            <span className="text-sm font-medium text-slate-700 truncate" title={name}>{name}</span>
+                                            <div className={`w-2 h-2 shrink-0 rounded-full ${zone.vehicleCount > 0 ? 'bg-blue-500 animate-pulse' : 'bg-slate-300'}`}></div>
+                                            <span className="text-sm font-medium text-slate-700 truncate" title={zone.name}>{zone.name}</span>
                                         </div>
                                         <span className="text-xs font-bold bg-white px-2 py-1 rounded shadow-sm border border-slate-200 text-slate-600 whitespace-nowrap">
-                                            {count} <span className="text-[9px] text-slate-400 font-normal">assets</span>
+                                            {zone.vehicleCount} <span className="text-[9px] text-slate-400 font-normal">assets</span>
                                         </span>
                                     </div>
                                 ))}
+                            {(!zones || zones.length === 0) && (
+                                <div className="col-span-2 text-center py-4 text-slate-400 text-sm">
+                                    No geofences found. Click to add.
+                                </div>
+                            )}
                         </div>
                         <div className="mt-4 pt-3 border-t border-slate-100 flex justify-center">
                             <span className="text-xs text-blue-500 font-medium flex items-center gap-1">
