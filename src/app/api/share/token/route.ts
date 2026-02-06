@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getOrCreateShareToken } from '@/lib/share-utils';
 
 export async function POST(req: NextRequest) {

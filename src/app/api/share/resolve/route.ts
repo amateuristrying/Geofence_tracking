@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { resolveShareToken } from '@/lib/share-utils';
 import { NavixyService } from '@/services/navixy';
 
