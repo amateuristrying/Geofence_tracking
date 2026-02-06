@@ -13,9 +13,7 @@ import {
     ArrowLeft,
     Eye,
     X,
-    Clock,
-    LogIn,
-    LogOut
+    Clock
 } from 'lucide-react';
 import { FleetAnalysis, ZoneType, ActionItem } from '../hooks/useFleetAnalysis';
 import type { Geofence } from '../types/geofence';
@@ -78,83 +76,6 @@ function StatusBadge({ status }: { status: string }) {
             <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`}></span>
             {status}
         </span>
-    );
-}
-
-function RecentEvents({ zoneId, trackerLabels }: { zoneId: number, trackerLabels: Record<number, string> }) {
-    const [events, setEvents] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        async function fetchEvents() {
-            try {
-                const res = await fetch(`/api/geofence/events?zoneId=${zoneId}&hours=24`);
-                const data = await res.json();
-                setEvents(data.events || []);
-            } catch (err) {
-                console.error('Failed to fetch events:', err);
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchEvents();
-        const interval = setInterval(fetchEvents, 30000); // 30s refresh
-        return () => clearInterval(interval);
-    }, [zoneId]);
-
-    const recentExits = events.filter(e => e.event_type === 'EXIT').slice(0, 5);
-    const recentEntries = events.filter(e => e.event_type === 'ENTRY').slice(0, 5);
-
-    if (loading) return <div className="animate-pulse h-10 bg-slate-50 rounded-lg mt-4"></div>;
-
-    return (
-        <div className="pt-4 border-t border-dashed border-slate-200 space-y-4">
-            {/* Exits Side */}
-            <div>
-                <h4 className="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                    <LogOut size={12} /> Recent Exits (24h)
-                </h4>
-                {recentExits.length > 0 ? (
-                    <div className="space-y-1.5">
-                        {recentExits.map(event => (
-                            <div key={event.id} className="flex justify-between items-center text-[11px] p-2 bg-red-50/50 border border-red-100/50 rounded-md">
-                                <span className="font-bold text-slate-700 truncate max-w-[120px]">
-                                    {trackerLabels[event.vehicle_id] || `#${event.vehicle_id}`}
-                                </span>
-                                <span className="text-slate-400 font-medium italic">
-                                    {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-[10px] text-slate-400 italic py-1 pl-1">No exits recorded</div>
-                )}
-            </div>
-
-            {/* Entries Side */}
-            <div>
-                <h4 className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                    <LogIn size={12} /> Recent Entries (24h)
-                </h4>
-                {recentEntries.length > 0 ? (
-                    <div className="space-y-1.5">
-                        {recentEntries.map(event => (
-                            <div key={event.id} className="flex justify-between items-center text-[11px] p-2 bg-emerald-50/50 border border-emerald-100/50 rounded-md">
-                                <span className="font-bold text-slate-700 truncate max-w-[120px]">
-                                    {trackerLabels[event.vehicle_id] || `#${event.vehicle_id}`}
-                                </span>
-                                <span className="text-slate-400 font-medium italic">
-                                    {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-[10px] text-slate-400 italic py-1 pl-1">No entries recorded</div>
-                )}
-            </div>
-        </div>
     );
 }
 
@@ -498,8 +419,15 @@ export default function RealtimeInsights({
                                             )}
                                         </div>
 
-                                        {/* Recent Events Section */}
-                                        <RecentEvents zoneId={zone.id} trackerLabels={trackerLabels} />
+                                        {/* Recent Exits Section (Placeholder) */}
+                                        <div className="pt-4 border-t border-dashed border-slate-200">
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                                <Clock size={14} /> Recent Exits
+                                            </h4>
+                                            <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-center">
+                                                <p className="text-xs text-slate-400">Recent exits capability currently disabled for stability.</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             );
