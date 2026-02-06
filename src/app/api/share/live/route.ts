@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
 
         // 2. Fetch all tracker positions
         const trackers = await NavixyService.listTrackers(sessionKey);
+        console.log(`[ShareLive] Total trackers fetched for session: ${trackers.length}`);
 
         if (trackers.length > 0 && process.env.NODE_ENV === 'development') {
             console.log('[ShareLive] Tracker Sample Structure:', JSON.stringify(trackers[0]).substring(0, 500));

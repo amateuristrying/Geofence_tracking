@@ -100,7 +100,7 @@ export default function SharedGeofencePage() {
         return () => clearInterval(t);
     }, []);
 
-    // 3. Initialize Map
+    // 3. Initialize Map & Resize Observer
     useEffect(() => {
         if (!mapContainer.current || !metadata || map.current) return;
 
@@ -117,12 +117,14 @@ export default function SharedGeofencePage() {
 
         m.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
-        // Force resize after mount to handle flexbox delays
-        setTimeout(() => m.resize(), 100);
-        setTimeout(() => m.resize(), 1000);
+        // Watch for container size changes
+        const resizeObserver = new ResizeObserver(() => {
+            if (m) m.resize();
+        });
+        resizeObserver.observe(mapContainer.current);
 
         m.on('load', () => {
-            console.log('[Map] Loading geofence layer with metadata:', metadata);
+            console.log('[Map] Layer Event: Map Loaded');
 
             let geojson: any = null;
             try {
@@ -137,7 +139,7 @@ export default function SharedGeofencePage() {
                     geojson = turf.buffer(line, metadata.radius / 1000, { units: 'kilometers' });
                 }
             } catch (e) {
-                console.error('[Map] Turf error processing geojson:', e);
+                console.error('[Map] Geometry error:', e);
             }
 
             if (geojson) {
@@ -155,33 +157,9 @@ export default function SharedGeofencePage() {
                     paint: { 'line-color': metadata.color || '#3b82f6', 'line-width': 3, 'line-dasharray': [2, 1] }
                 });
 
-                try {
-                    const bbox = turf.bbox(geojson);
-                    console.log('[Map] Calculated BBox:', bbox);
-
-                    // Ensure bounds are valid numbers
-                    const isValidBbox = bbox.every(coord => typeof coord === 'number' && !isNaN(coord) && isFinite(coord));
-
-                    if (isValidBbox) {
-                        // Check if the container actually has dimensions
-                        const container = m.getContainer();
-                        if (container.clientWidth > 0 && container.clientHeight > 0) {
-                            m.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], {
-                                padding: 60,
-                                duration: 1500,
-                                animate: true,
-                                linear: true // More stable for small shapes
-                            });
-                        } else {
-                            console.warn('[Map] Container has no dimensions, skipping initial fitBounds');
-                            // Fallback to center
-                            if (metadata.center) {
-                                m.setCenter([Number(metadata.center.lng), Number(metadata.center.lat)]);
-                            }
-                        }
-                    }
-                } catch (fitError) {
-                    console.error('[Map] fitBounds failed:', fitError);
+                const bbox = turf.bbox(geojson);
+                if (bbox.every(n => isFinite(n))) {
+                    m.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 80, duration: 1500 });
                 }
             }
         });
@@ -189,6 +167,7 @@ export default function SharedGeofencePage() {
         map.current = m;
 
         return () => {
+            resizeObserver.disconnect();
             m.remove();
             map.current = null;
         };
