@@ -65,7 +65,7 @@ const getMarkerSVG = (status: string, color: string, heading: number): string =>
                 <div class="tracker-wrapper flex items-center justify-center hover:scale-110 transition-all">
                     <svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
                         <circle cx="12" cy="12" r="9" fill="${color}" stroke="white" stroke-width="2" class="tracker-path"/>
-                        <text x="12" y="17" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="14" font-weight="bold">P</text>
+                        <text x="12" y="12" text-anchor="middle" dominant-baseline="central" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">P</text>
                     </svg>
                 </div>`;
 
@@ -89,7 +89,7 @@ const getMarkerSVG = (status: string, color: string, heading: number): string =>
                         <circle cx="12" cy="12" r="9" fill="${color}" stroke="white" stroke-width="2" class="tracker-path">
                             <animate attributeName="opacity" values="1;0.6;1" dur="2s" repeatCount="indefinite"/>
                         </circle>
-                        <text x="12" y="17" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="14" font-weight="bold">P</text>
+                        <text x="12" y="12" text-anchor="middle" dominant-baseline="central" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">P</text>
                     </svg>
                 </div>`;
 
@@ -411,7 +411,32 @@ export default function RealtimeMap({
                     padding: 0 !important;
                     border-radius: 12px !important;
                     overflow: hidden;
-                    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.1) !important;
+                    box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.15) !important;
+                    border: 1px solid rgba(0,0,0,0.05) !important;
+                }
+                .mapboxgl-popup-close-button {
+                    font-size: 16px !important;
+                    font-weight: bold !important;
+                    width: 32px !important;
+                    height: 44px !important; /* Matches header height (py-3 approx) */
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    color: #94a3b8 !important;
+                    padding: 0 !important;
+                    right: 0 !important;
+                    top: 0 !important;
+                    border-radius: 0 12px 0 0 !important;
+                    background: transparent !important;
+                    border: none !important;
+                    transition: all 0.2s !important;
+                }
+                .mapboxgl-popup-close-button:hover {
+                    color: #ef4444 !important;
+                    background-color: #fee2e2 !important;
+                }
+                .mapboxgl-popup-tip {
+                    border-top-color: #fff !important;
                 }
             `}</style>
             <div ref={mapContainer} className="w-full h-full" />
