@@ -1,0 +1,8 @@
+{
+    "crons": [
+        {
+            "path": "/api/cron/geofence-observer",
+            "schedule": "*/1 * * * *"
+        }
+    ]
+}
