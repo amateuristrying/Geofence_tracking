@@ -24,9 +24,15 @@ export async function GET(req: NextRequest) {
 
         if (!sessionKey) return NextResponse.json({ error: 'Config error' }, { status: 500 });
 
-        // 1. Fetch Geofence to get its geometry
-        const zones = await NavixyService.listZones(sessionKey);
-        const zone = zones.find((z: any) => z.id === share.navixy_zone_id);
+        // 1. Get Geofence Geometry - PREFER DB CACHE
+        let zone = share.zone_data as any;
+
+        if (!zone) {
+            console.warn(`[ShareLive] No cached zone_data for token ${token}, falling back to Navixy API`);
+            const zones = await NavixyService.listZones(sessionKey);
+            zone = zones.find((z: any) => z.id === share.navixy_zone_id);
+        }
+
         if (!zone) return NextResponse.json({ error: 'Zone not found' }, { status: 404 });
 
         // 2. Fetch all tracker positions

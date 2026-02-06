@@ -109,12 +109,17 @@ export default function SharedGeofencePage() {
         const m = new mapboxgl.Map({
             container: mapContainer.current,
             style: 'mapbox://styles/mapbox/satellite-streets-v12',
-            center: metadata.center ? [metadata.center.lng, metadata.center.lat] : [39.2, -6.8],
+            center: metadata.center ? [Number(metadata.center.lng), Number(metadata.center.lat)] : [39.2, -6.8],
             zoom: 15,
-            attributionControl: false
+            attributionControl: false,
+            trackResize: true
         });
 
         m.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+
+        // Force resize after mount to handle flexbox delays
+        setTimeout(() => m.resize(), 100);
+        setTimeout(() => m.resize(), 1000);
 
         m.on('load', () => {
             console.log('[Map] Loading geofence layer with metadata:', metadata);
