@@ -13,10 +13,18 @@ export function getSupabaseAdmin(): SupabaseClient {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    console.log('[SupabaseServer] Initializing Admin Client...');
+    console.log('[SupabaseServer] URL Present:', !!supabaseUrl);
+    console.log('[SupabaseServer] Key Present:', !!supabaseServiceKey);
+
+    if (supabaseServiceKey) {
+        console.log(`[SupabaseServer] Key Start: ${supabaseServiceKey.substring(0, 10)}...`);
+    }
+
     if (!supabaseUrl || !supabaseServiceKey) {
         throw new Error(
             'Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL. ' +
-            'Add SUPABASE_SERVICE_ROLE_KEY to .env.local (without NEXT_PUBLIC_ prefix).'
+            'Add SUPABASE_SERVICE_ROLE_KEY to your Vercel Environment Variables.'
         );
     }
 

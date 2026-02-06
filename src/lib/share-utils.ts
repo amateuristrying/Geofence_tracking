@@ -9,21 +9,29 @@ export interface GeofenceShare {
 }
 
 export async function getOrCreateShareToken(navixyZoneId: number, region: 'TZ' | 'ZM'): Promise<string> {
-    const { data: existing } = await supabase
+    const adminSupabase = getSupabaseAdmin();
+
+    console.log(`[ShareUtils] getOrCreateShareToken for zone ${navixyZoneId} (${region})`);
+
+    const { data: existing, error: fetchError } = await adminSupabase
         .from('geofence_shares')
         .select('share_token')
         .eq('navixy_zone_id', navixyZoneId)
         .eq('region', region)
-        .single();
+        .maybeSingle();
 
     if (existing) {
+        console.log(`[ShareUtils] Found existing token: ${existing.share_token}`);
         return existing.share_token;
     }
 
-    const shareToken = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+    if (fetchError) {
+        console.error('[ShareUtils] Error checking for existing token:', fetchError);
+    }
 
-    // Use admin client for write
-    const adminSupabase = getSupabaseAdmin();
+    const shareToken = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+    console.log(`[ShareUtils] Generating new token: ${shareToken}`);
+
     const { data, error } = await adminSupabase
         .from('geofence_shares')
         .insert({
@@ -35,25 +43,35 @@ export async function getOrCreateShareToken(navixyZoneId: number, region: 'TZ' |
         .single();
 
     if (error) {
-        console.error('Error creating share token:', error);
-        throw new Error('Failed to create share token');
+        console.error('[ShareUtils] Error creating share token in DB:', error);
+        throw new Error('Failed to create share token in database');
     }
 
+    console.log('[ShareUtils] Successfully created and saved token');
     return data.share_token;
 }
 
 export async function resolveShareToken(token: string): Promise<GeofenceShare | null> {
     const adminSupabase = getSupabaseAdmin();
+
+    console.log(`[ShareUtils] resolveShareToken attempt: ${token}`);
+
     const { data, error } = await adminSupabase
         .from('geofence_shares')
         .select('*')
         .eq('share_token', token)
-        .single();
+        .maybeSingle();
 
-    if (error || !data) {
-        console.error('Resolve token error:', error);
+    if (error) {
+        console.error(`[ShareUtils] Database error resolving token ${token}:`, error);
         return null;
     }
 
+    if (!data) {
+        console.warn(`[ShareUtils] Token ${token} not found in geofence_shares table`);
+        return null;
+    }
+
+    console.log(`[ShareUtils] Token resolved to zone ${data.navixy_zone_id}`);
     return data;
 }
