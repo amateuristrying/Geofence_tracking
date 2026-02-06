@@ -27,6 +27,7 @@ interface RealtimeMapProps {
     drawingMode?: 'none' | 'polygon' | 'corridor' | 'circle';
     onDrawComplete?: (payload: CreateZonePayload) => void;
     onDrawCancel?: () => void;
+    viewMode?: 'locked' | 'unlocked';
 }
 
 const getDirection = (heading: number): string => {
@@ -122,7 +123,8 @@ const formatTimeAgo = (dateString: string): string => {
 
 export default function RealtimeMap({
     trackers, trackerLabels = {}, analysis, showDelays = false, focusedAction, focusedTrackerId,
-    zones = [], selectedZoneId = null, onSelectZone = () => { }, drawingMode = 'none', onDrawComplete = () => { }, onDrawCancel = () => { }
+    zones = [], selectedZoneId = null, onSelectZone = () => { }, drawingMode = 'none', onDrawComplete = () => { }, onDrawCancel = () => { },
+    viewMode = 'unlocked'
 }: RealtimeMapProps) {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<mapboxgl.Map | null>(null);
@@ -422,6 +424,7 @@ export default function RealtimeMap({
                 drawingMode={drawingMode}
                 onDrawComplete={onDrawComplete}
                 onDrawCancel={onDrawCancel}
+                viewMode={viewMode}
             />
         </div>
     );

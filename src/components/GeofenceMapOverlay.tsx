@@ -16,6 +16,7 @@ interface GeofenceMapOverlayProps {
     onDrawComplete: (payload: CreateZonePayload) => void;
     onDrawCancel: () => void;
     corridorRadius?: number; // meters, for sausage type
+    viewMode?: 'locked' | 'unlocked';
 }
 
 const SOURCE_ID = 'geofences-source';
@@ -92,6 +93,7 @@ export default function GeofenceMapOverlay({
     onDrawComplete,
     onDrawCancel,
     corridorRadius = 500,
+    viewMode = 'unlocked'
 }: GeofenceMapOverlayProps) {
     const drawRef = useRef<MapboxDraw | null>(null);
     const layersAdded = useRef(false);
@@ -195,7 +197,7 @@ export default function GeofenceMapOverlay({
         if (!map || !layersAdded.current) return;
 
         const handleClick = (e: mapboxgl.MapMouseEvent) => {
-            if (drawingMode !== 'none') return; // Don't select while drawing
+            if (drawingMode !== 'none' || viewMode === 'locked') return; // Don't select while drawing or if locked
 
             const features = map.queryRenderedFeatures(e.point, { layers: [FILL_LAYER] });
             if (features.length > 0) {
@@ -209,8 +211,8 @@ export default function GeofenceMapOverlay({
         map.on('click', FILL_LAYER, handleClick);
 
         // Cursor change
-        const onEnter = () => { if (drawingMode === 'none') map.getCanvas().style.cursor = 'pointer'; };
-        const onLeave = () => { if (drawingMode === 'none') map.getCanvas().style.cursor = ''; };
+        const onEnter = () => { if (drawingMode === 'none' && viewMode === 'unlocked') map.getCanvas().style.cursor = 'pointer'; };
+        const onLeave = () => { if (drawingMode === 'none' && viewMode === 'unlocked') map.getCanvas().style.cursor = ''; };
         map.on('mouseenter', FILL_LAYER, onEnter);
         map.on('mouseleave', FILL_LAYER, onLeave);
 

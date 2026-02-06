@@ -15,8 +15,16 @@ import { NavixyService } from '../services/navixy';
 import { cn } from '@/lib/utils';
 import type { CreateZonePayload } from '../types/geofence';
 import { CUSTOM_TRACKER_LABELS } from '../config/vehicleDirectory';
+import { useSearchParams } from 'next/navigation';
 
 export default function LiveTracker() {
+    const searchParams = useSearchParams();
+    const geofenceIdParam = searchParams.get('geofence_id');
+    const viewModeParam = searchParams.get('view');
+    const regionParam = searchParams.get('region') as 'TZ' | 'ZM' | null;
+
+    const isLocked = viewModeParam === 'locked';
+
     const [trackerIds, setTrackerIds] = useState<number[]>([]);
     const [trackerLabels, setTrackerLabels] = useState<Record<number, string>>({});
 
@@ -35,7 +43,7 @@ export default function LiveTracker() {
     const [monitoredZoneIds, setMonitoredZoneIds] = useState<number[]>([]);
 
     // Region/Ops State
-    const [region, setRegion] = useState<'TZ' | 'ZM'>('TZ');
+    const [region, setRegion] = useState<'TZ' | 'ZM'>(regionParam || 'TZ');
 
     const sessionKey = region === 'TZ'
         ? (process.env.NEXT_PUBLIC_NAVIXY_SESSION_KEY_TZ || process.env.NEXT_PUBLIC_NAVIXY_SESSION_KEY)
@@ -82,11 +90,22 @@ export default function LiveTracker() {
     const analysis = useFleetAnalysis(trackerStates);
 
 
-    // Initialize Geofence Hook
+    // Geofence Hook
     const {
         zones, selectedZoneId, setSelectedZoneId,
         createZone, deleteZone, refreshZones
     } = useGeofences(trackerStates, sessionKey, trackerIds);
+
+    // Auto-select geofence from URL if in locked mode
+    useEffect(() => {
+        if (isLocked && geofenceIdParam) {
+            const id = Number(geofenceIdParam);
+            if (!isNaN(id)) {
+                setSelectedZoneId(id);
+                setCurrentView('geofences');
+            }
+        }
+    }, [isLocked, geofenceIdParam, setSelectedZoneId]);
 
     const trackerList = Object.entries(trackerStates).map(([id, state]) => ({
         id: Number(id),
@@ -134,50 +153,66 @@ export default function LiveTracker() {
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pt-4">
-            {/* Branding & Header */}
-            <div className="flex flex-col gap-6 mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-1">Unifleet Real-time Operations</h1>
-                    <p className="text-slate-500 text-sm">Live fleet monitoring and telemetry status</p>
-                </div>
+            {/* Branding & Header - Hidden in Locked Mode */}
+            {!isLocked && (
+                <div className="flex flex-col gap-6 mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900 mb-1">Unifleet Real-time Operations</h1>
+                        <p className="text-slate-500 text-sm">Live fleet monitoring and telemetry status</p>
+                    </div>
 
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-lg font-bold text-slate-800">Live Fleet Monitoring</h2>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-lg font-bold text-slate-800">Live Fleet Monitoring</h2>
 
-                        {/* Region Switcher */}
-                        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-                            <button
-                                onClick={() => setRegion('TZ')}
-                                className={cn(
-                                    "px-3 py-1 rounded-md text-xs font-bold transition-all",
-                                    region === 'TZ'
-                                        ? "bg-white text-blue-600 shadow-sm"
-                                        : "text-slate-500 hover:text-slate-700"
-                                )}
-                            >
-                                TZ Ops
-                            </button>
-                            <button
-                                onClick={() => setRegion('ZM')}
-                                className={cn(
-                                    "px-3 py-1 rounded-md text-xs font-bold transition-all",
-                                    region === 'ZM'
-                                        ? "bg-white text-emerald-600 shadow-sm"
-                                        : "text-slate-500 hover:text-slate-700"
-                                )}
-                            >
-                                ZM Ops
-                            </button>
+                            {/* Region Switcher */}
+                            <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                <button
+                                    onClick={() => setRegion('TZ')}
+                                    className={cn(
+                                        "px-3 py-1 rounded-md text-xs font-bold transition-all",
+                                        region === 'TZ'
+                                            ? "bg-white text-blue-600 shadow-sm"
+                                            : "text-slate-500 hover:text-slate-700"
+                                    )}
+                                >
+                                    TZ Ops
+                                </button>
+                                <button
+                                    onClick={() => setRegion('ZM')}
+                                    className={cn(
+                                        "px-3 py-1 rounded-md text-xs font-bold transition-all",
+                                        region === 'ZM'
+                                            ? "bg-white text-emerald-600 shadow-sm"
+                                            : "text-slate-500 hover:text-slate-700"
+                                    )}
+                                >
+                                    ZM Ops
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {loading && <Loader2 className="animate-spin text-blue-500" size={20} />}
+                            {!loading && <div className="flex items-center gap-1.5 text-xs text-green-600 font-bold"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-green-200 shadow-lg" /> Live System Active</div>}
                         </div>
                     </div>
+                </div>
+            )}
 
-                    <div className="flex items-center gap-2">
-                        {loading && <Loader2 className="animate-spin text-blue-500" size={20} />}
-                        {!loading && <div className="flex items-center gap-1.5 text-xs text-green-600 font-bold"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-green-200 shadow-lg" /> Live System Active</div>}
+            {/* Minimal Header for Locked Mode */}
+            {isLocked && (
+                <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900">Unifleet Monitoring</h1>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{region} Operations State</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-green-600 font-bold">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                        LIVE SYSTEM ACTIVE
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* SUMMARY VIEW: Just Active Geofences + Monitor Geofences */}
             {currentView === 'summary' && (
@@ -195,8 +230,8 @@ export default function LiveTracker() {
             {/* DRILL DOWN VIEW: Split Screen (Map + Interactive List/Panel) */}
             {currentView !== 'summary' && (
                 <div className="space-y-4">
-                    {/* Back Button Header for Drill Down Views */}
-                    {(currentView === 'geofences' || currentView === 'monitor') && (
+                    {/* Back Button Header for Drill Down Views - Hidden in Locked Mode */}
+                    {!isLocked && (currentView === 'geofences' || currentView === 'monitor') && (
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setCurrentView('summary')}
@@ -226,6 +261,7 @@ export default function LiveTracker() {
                                     onMonitorZones={setMonitoredZoneIds}
                                     region={region}
                                     onRefresh={refreshZones}
+                                    viewMode={isLocked ? 'locked' : 'unlocked'}
                                 />
                             ) : (
                                 <RealtimeInsights
@@ -263,8 +299,8 @@ export default function LiveTracker() {
                 </div>
             )}
 
-            {/* Data Inspector - Floating Debug Tool */}
-            <NavixyDataInspector trackerStates={trackerStates} trackerLabels={trackerLabels} />
+            {/* Data Inspector - Hidden in Locked Mode */}
+            {!isLocked && <NavixyDataInspector trackerStates={trackerStates} trackerLabels={trackerLabels} />}
         </div>
     );
 }
