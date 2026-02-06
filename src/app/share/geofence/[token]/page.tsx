@@ -117,18 +117,22 @@ export default function SharedGeofencePage() {
         m.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
         m.on('load', () => {
-            let geojson: any;
-            if (metadata.type === 'circle' && metadata.center && metadata.radius) {
-                geojson = turf.circle([metadata.center.lng, metadata.center.lat], metadata.radius / 1000, { units: 'kilometers' });
-            } else if ((metadata.type === 'polygon' || metadata.type === 'zone') && metadata.points) {
-                const coords = metadata.points.map(p => [p.lng, p.lat]);
-                if (coords.length > 0) {
+            console.log('[Map] Loading geofence layer with metadata:', metadata);
+
+            let geojson: any = null;
+            try {
+                if (metadata.type === 'circle' && metadata.center && metadata.radius) {
+                    geojson = turf.circle([Number(metadata.center.lng), Number(metadata.center.lat)], metadata.radius / 1000, { units: 'kilometers' });
+                } else if ((metadata.type === 'polygon' || metadata.type === 'zone') && metadata.points && metadata.points.length >= 3) {
+                    const coords = metadata.points.map(p => [Number(p.lng), Number(p.lat)]);
                     coords.push(coords[0]);
                     geojson = turf.polygon([coords]);
+                } else if (metadata.type === 'sausage' && metadata.points && metadata.points.length >= 2 && metadata.radius) {
+                    const line = turf.lineString(metadata.points.map(p => [Number(p.lng), Number(p.lat)]));
+                    geojson = turf.buffer(line, metadata.radius / 1000, { units: 'kilometers' });
                 }
-            } else if (metadata.type === 'sausage' && metadata.points && metadata.radius) {
-                const line = turf.lineString(metadata.points.map(p => [p.lng, p.lat]));
-                geojson = turf.buffer(line, metadata.radius / 1000, { units: 'kilometers' });
+            } catch (e) {
+                console.error('[Map] Turf error processing geojson:', e);
             }
 
             if (geojson) {
@@ -137,24 +141,24 @@ export default function SharedGeofencePage() {
                     id: 'geofence-fill',
                     type: 'fill',
                     source: 'geofence',
-                    paint: {
-                        'fill-color': metadata.color || '#3b82f6',
-                        'fill-opacity': 0.15
-                    }
+                    paint: { 'fill-color': metadata.color || '#3b82f6', 'fill-opacity': 0.15 }
                 });
                 m.addLayer({
                     id: 'geofence-outline',
                     type: 'line',
                     source: 'geofence',
-                    paint: {
-                        'line-color': metadata.color || '#3b82f6',
-                        'line-width': 3,
-                        'line-dasharray': [2, 1]
-                    }
+                    paint: { 'line-color': metadata.color || '#3b82f6', 'line-width': 3, 'line-dasharray': [2, 1] }
                 });
 
-                const bbox = turf.bbox(geojson);
-                m.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40 });
+                try {
+                    const bbox = turf.bbox(geojson);
+                    // Ensure bounds are not [Infinity, Infinity...]
+                    if (bbox.every(n => isFinite(n))) {
+                        m.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 50, duration: 1000 });
+                    }
+                } catch (fitError) {
+                    console.error('[Map] fitBounds failed:', fitError);
+                }
             }
         });
 
