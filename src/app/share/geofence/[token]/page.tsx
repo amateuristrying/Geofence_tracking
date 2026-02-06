@@ -152,9 +152,28 @@ export default function SharedGeofencePage() {
 
                 try {
                     const bbox = turf.bbox(geojson);
-                    // Ensure bounds are not [Infinity, Infinity...]
-                    if (bbox.every(n => isFinite(n))) {
-                        m.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 50, duration: 1000 });
+                    console.log('[Map] Calculated BBox:', bbox);
+
+                    // Ensure bounds are valid numbers
+                    const isValidBbox = bbox.every(coord => typeof coord === 'number' && !isNaN(coord) && isFinite(coord));
+
+                    if (isValidBbox) {
+                        // Check if the container actually has dimensions
+                        const container = m.getContainer();
+                        if (container.clientWidth > 0 && container.clientHeight > 0) {
+                            m.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], {
+                                padding: 60,
+                                duration: 1500,
+                                animate: true,
+                                linear: true // More stable for small shapes
+                            });
+                        } else {
+                            console.warn('[Map] Container has no dimensions, skipping initial fitBounds');
+                            // Fallback to center
+                            if (metadata.center) {
+                                m.setCenter([Number(metadata.center.lng), Number(metadata.center.lat)]);
+                            }
+                        }
                     }
                 } catch (fitError) {
                     console.error('[Map] fitBounds failed:', fitError);
