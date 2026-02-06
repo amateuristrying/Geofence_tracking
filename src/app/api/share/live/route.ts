@@ -30,32 +30,42 @@ export async function GET(req: NextRequest) {
         if (!zone) return NextResponse.json({ error: 'Zone not found' }, { status: 404 });
 
         // 2. Fetch all tracker positions
-        // Navixy list trackers usually includes last positions or we can use tracker/list
         const trackers = await NavixyService.listTrackers(sessionKey);
+
+        if (trackers.length > 0 && process.env.NODE_ENV === 'development') {
+            console.log('[ShareLive] Tracker Sample Structure:', JSON.stringify(trackers[0]).substring(0, 500));
+        }
 
         // 3. Filter trackers inside the geofence
         const insideTrackers = trackers.filter((t: any) => {
-            const lat = t.gps?.location?.lat || t.last_position?.lat;
-            const lng = t.gps?.location?.lng || t.last_position?.lng;
+            // Robust location parsing
+            const gps = t.gps || t.last_position || {};
+            const loc = gps.location || gps;
+            const lat = loc.lat;
+            const lng = loc.lng;
+
             if (!lat || !lng) return false;
 
             try {
+                const point = turf.point([Number(lng), Number(lat)]);
                 if (zone.type === 'circle' && zone.center && zone.radius) {
                     const distance = turf.distance(
-                        turf.point([lng, lat]),
-                        turf.point([zone.center.lng, zone.center.lat]),
+                        point,
+                        turf.point([Number(zone.center.lng), Number(zone.center.lat)]),
                         { units: 'meters' }
                     );
                     return distance <= zone.radius;
-                } else if (zone.type === 'polygon' && zone.points && zone.points.length >= 3) {
-                    const coords = zone.points.map((p: any) => [p.lng, p.lat]);
-                    coords.push(coords[0]);
-                    const poly = turf.polygon([coords]);
-                    return turf.booleanPointInPolygon(turf.point([lng, lat]), poly);
+                } else if ((zone.type === 'polygon' || zone.type === 'zone') && zone.points && zone.points.length >= 3) {
+                    const coords = zone.points.map((p: any) => [Number(p.lng), Number(lat === undefined ? p.lat : p.lat)]);
+                    // Note: Ensure we use the correct lat/lng from points
+                    const polyCoords = zone.points.map((p: any) => [Number(p.lng), Number(p.lat)]);
+                    polyCoords.push(polyCoords[0]);
+                    const poly = turf.polygon([polyCoords]);
+                    return turf.booleanPointInPolygon(point, poly);
                 } else if (zone.type === 'sausage' && zone.points && zone.points.length >= 2 && zone.radius) {
-                    const coords = zone.points.map((p: any) => [p.lng, p.lat]);
-                    const line = turf.lineString(coords);
-                    const distance = turf.pointToLineDistance(turf.point([lng, lat]), line, { units: 'meters' });
+                    const lineCoords = zone.points.map((p: any) => [Number(p.lng), Number(p.lat)]);
+                    const line = turf.lineString(lineCoords);
+                    const distance = turf.pointToLineDistance(point, line, { units: 'meters' });
                     return distance <= zone.radius;
                 }
             } catch (e) {
@@ -64,18 +74,23 @@ export async function GET(req: NextRequest) {
             return false;
         });
 
-        // 4. Transform to a simplified state object for the client
-        const states = insideTrackers.map((t: any) => ({
-            id: t.source?.id || t.id,
-            label: t.label,
-            lat: t.gps?.location?.lat || t.last_position?.lat,
-            lng: t.gps?.location?.lng || t.last_position?.lng,
-            speed: t.gps?.speed || t.last_position?.speed || 0,
-            heading: t.gps?.heading || t.last_position?.heading || 0,
-            last_update: t.last_update || t.gps?.updated,
-            status: t.movement_status || (t.gps?.speed > 0 ? 'moving' : 'parked'), // Basic inference
-            ignition: t.ignition
-        }));
+        // 4. Transform for the premium client
+        const states = insideTrackers.map((t: any) => {
+            const gps = t.gps || t.last_position || {};
+            const loc = gps.location || gps;
+
+            return {
+                id: t.id || t.source_id,
+                label: t.label || `Vehicle #${t.id}`,
+                lat: Number(loc.lat),
+                lng: Number(loc.lng),
+                speed: Number(gps.speed || 0),
+                heading: Number(gps.heading || 0),
+                last_update: gps.updated || t.last_update,
+                status: t.movement_status || (Number(gps.speed) > 0 ? 'moving' : 'parked'),
+                ignition: t.ignition ?? gps.ignition
+            };
+        });
 
         return NextResponse.json({ trackers: states });
     } catch (error: any) {
