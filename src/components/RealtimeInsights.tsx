@@ -241,7 +241,7 @@ export default function RealtimeInsights({
                                 ))
                             ) : (
                                 <div className="col-span-2 text-center text-slate-400 text-sm py-4">
-                                    No monitor geofences configured. Click Active Geofences to add zones.
+                                    No monitor geofences configured. Click Track Geofences to add zones.
                                 </div>
                             )}
                         </div>
@@ -341,13 +341,13 @@ export default function RealtimeInsights({
                         <div className="flex flex-col items-center justify-center py-12 px-6 text-center bg-white rounded-lg border border-dashed border-gray-200 h-64">
                             <Eye className="text-slate-300 mb-4" size={40} />
                             <p className="text-sm font-medium text-slate-500 mb-4 max-w-xs leading-relaxed">
-                                Go to Active Geofences Section to select what vehicles you want to Monitor here.
+                                Go to Track Geofences Section to select what vehicles you want to Monitor here.
                             </p>
                             <button
                                 onClick={() => onViewChange('geofences')}
                                 className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow"
                             >
-                                Active Geofences <ArrowRight size={14} />
+                                Track Geofences <ArrowRight size={14} />
                             </button>
                         </div>
                     ) : (
@@ -424,14 +424,39 @@ export default function RealtimeInsights({
                                             )}
                                         </div>
 
-                                        {/* Recent Exits Section (Placeholder) */}
                                         <div className="pt-4 border-t border-dashed border-slate-200">
                                             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                                                <Clock size={14} /> Recent Exits
+                                                <Clock size={14} /> Recent Exits (Last 1 Hour)
                                             </h4>
-                                            <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-center">
-                                                <p className="text-xs text-slate-400">Recent exits capability currently disabled for stability.</p>
-                                            </div>
+                                            {zone.recentExits && Object.keys(zone.recentExits).length > 0 ? (
+                                                <div className="space-y-2">
+                                                    {Object.values(zone.recentExits)
+                                                        .sort((a, b) => b.exitTime - a.exitTime)
+                                                        .map(exitData => {
+                                                            const label = trackerLabels?.[exitData.trackerId] || `Vehicle #${exitData.trackerId}`;
+                                                            const timeSinceExitStr = formatDuration(Date.now() - exitData.exitTime);
+
+                                                            return (
+                                                                <div key={`exit-${exitData.trackerId}`} className="flex justify-between items-center p-2 bg-slate-50/50 rounded-lg border border-dashed border-slate-200 opacity-60">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                                                        <div>
+                                                                            <div className="text-xs font-semibold text-slate-600">{label}</div>
+                                                                            <div className="text-[9px] text-slate-400">Was inside for {formatDuration(exitData.exitTime - exitData.entryTime)}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-[10px] font-bold text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-100">
+                                                                        {timeSinceExitStr} ago
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                </div>
+                                            ) : (
+                                                <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-center">
+                                                    <p className="text-xs text-slate-400">No recent exits detected</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

@@ -128,6 +128,7 @@ export function useGeofences(
                             vehicleCount: 0,
                             vehicleIds: [],
                             occupants: {},
+                            recentExits: {},
                             share_token: shareTokenMap[z.id],
                         } as Geofence;
                     })
@@ -253,6 +254,11 @@ export function useGeofences(
                                 status
                             };
                             occupantsChanged = true;
+
+                            // If they were in recent exits, remove them
+                            if (z.recentExits?.[tid]) {
+                                occupantsChanged = true; // Still counts as a change to the object
+                            }
                         } else {
                             // Existing - update lastSeen and status to reflect real-time changes
                             const tracker = trackers[tid];
@@ -267,10 +273,39 @@ export function useGeofences(
                     });
 
                     // 2. Handle exits
+                    const nextRecentExits: Record<number, any> = { ...z.recentExits };
+                    const now = Date.now();
+                    const EXPIRE_MS = 60 * 60 * 1000; // 1 hour
+
                     Object.keys(nextOccupants).forEach(tidStr => {
                         const tid = Number(tidStr);
                         if (!currentIds.has(tid)) {
+                            // Moving to recent exits
+                            const exitingOccupant = nextOccupants[tid];
+                            console.log(`[RecentExits] Vehicle ${tid} exited zone ${z.name} at ${new Date().toLocaleTimeString()}`);
+                            nextRecentExits[tid] = {
+                                ...exitingOccupant,
+                                exitTime: now
+                            };
                             delete nextOccupants[tid];
+                            occupantsChanged = true;
+                        }
+                    });
+
+                    // Remove current IDs from recent exits if they somehow persisted
+                    currentIds.forEach(tid => {
+                        if (nextRecentExits[tid]) {
+                            delete nextRecentExits[tid];
+                            occupantsChanged = true;
+                        }
+                    });
+
+                    // 3. Expire old recent exits
+                    Object.keys(nextRecentExits).forEach(tidStr => {
+                        const tid = Number(tidStr);
+                        const exitData = nextRecentExits[tid];
+                        if (now - exitData.exitTime > EXPIRE_MS) {
+                            delete nextRecentExits[tid];
                             occupantsChanged = true;
                         }
                     });
@@ -288,7 +323,8 @@ export function useGeofences(
                             ...z,
                             vehicleCount: newCount,
                             vehicleIds: newIds,
-                            occupants: nextOccupants
+                            occupants: nextOccupants,
+                            recentExits: nextRecentExits
                         };
                     }
                     return z;

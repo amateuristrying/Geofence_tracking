@@ -94,7 +94,7 @@ export default function LiveTracker() {
     // Geofence Hook
     const {
         zones, selectedZoneId, setSelectedZoneId,
-        createZone, deleteZone, refreshZones
+        createZone, refreshZones
     } = useGeofences(trackerStates, sessionKey, trackerIds);
 
     // Auto-select geofence from URL if in locked mode
@@ -160,7 +160,7 @@ export default function LiveTracker() {
     };
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto pt-4">
+        <div className="space-y-4 md:space-y-6 max-w-7xl mx-auto pt-2 md:pt-4">
             {/* Branding & Header - Hidden in Locked Mode */}
             {!isLocked && (
                 <div className="flex flex-col gap-6 mb-8">
@@ -225,12 +225,12 @@ export default function LiveTracker() {
 
             {/* Minimal Header for Locked Mode */}
             {isLocked && (
-                <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center justify-between mb-2 md:mb-4 pb-2 md:pb-4 border-b border-slate-100 flex-wrap gap-2">
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900">Unifleet Monitoring</h1>
+                        <h1 className="text-lg md:text-xl font-bold text-slate-900">Unifleet Monitoring</h1>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{region} Operations State</p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 md:gap-4">
                         <button
                             onClick={handleGlobalRefresh}
                             className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-slate-600 transition-all shadow-sm flex items-center gap-2"
@@ -241,7 +241,7 @@ export default function LiveTracker() {
                         </button>
                         <div className="flex items-center gap-1.5 text-xs text-green-600 font-bold">
                             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                            LIVE SYSTEM ACTIVE
+                            <span className="hidden sm:inline">LIVE SYSTEM ACTIVE</span>
                         </div>
                     </div>
                 </div>
@@ -276,9 +276,9 @@ export default function LiveTracker() {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-280px)] min-h-[500px] animate-in slide-in-from-right duration-300">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-[calc(100vh-280px)] lg:min-h-[500px] animate-in slide-in-from-right duration-300">
                         {/* Left Panel: The Interactive List OR Geofence Panel */}
-                        <div className="h-full overflow-hidden flex flex-col">
+                        <div className="h-[80vh] lg:h-full overflow-hidden flex flex-col">
                             {currentView === 'geofences' ? (
                                 <GeofencePanel
                                     zones={zones}
@@ -286,7 +286,6 @@ export default function LiveTracker() {
                                     trackerLabels={trackerLabels}
                                     onSelectZone={setSelectedZoneId}
                                     onCreateZone={createZone}
-                                    onDeleteZone={deleteZone}
                                     onStartDrawing={handleStartDrawing}
                                     onCancelDrawing={handleCancelDrawing}
                                     drawnPayload={drawnPayload}
@@ -312,7 +311,7 @@ export default function LiveTracker() {
                         </div>
 
                         {/* Right Panel: The Interactive Map */}
-                        <div className="lg:col-span-2 h-full rounded-xl overflow-hidden shadow-sm border border-gray-200">
+                        <div className="lg:col-span-2 h-[70vh] lg:h-full rounded-xl overflow-hidden shadow-sm border border-gray-200">
                             <RealtimeMap
                                 trackers={filteredTrackerStates}
                                 trackerLabels={trackerLabels}

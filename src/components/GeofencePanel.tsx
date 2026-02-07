@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import {
-    MapPin, Plus, Trash2, Clock, ArrowLeft,
+    MapPin, Plus, Clock, ArrowLeft,
     Anchor, Files, Warehouse, Truck, Target,
     Hexagon, Route, Circle,
-    Eye, Check, X, Square, RefreshCw
+    Eye, Check, X, Square, RefreshCw, LogOut
 } from 'lucide-react';
 import type { Geofence, CreateZonePayload, GeofenceCategory } from '../types/geofence';
 
@@ -18,7 +18,7 @@ interface GeofencePanelProps {
     trackerLabels: Record<number, string>;
     onSelectZone: (zoneId: number | null) => void;
     onCreateZone: (payload: CreateZonePayload) => Promise<number | null>;
-    onDeleteZone: (zoneId: number) => Promise<boolean>;
+
     onStartDrawing: (mode: 'polygon' | 'corridor' | 'circle') => void;
     onCancelDrawing: () => void;
     drawnPayload?: CreateZonePayload | null;
@@ -51,11 +51,18 @@ const categoryLabels: Record<GeofenceCategory, string> = {
     custom: 'Custom Zone',
 };
 
+// Helper to truncate name to first N words
+function truncateToWords(name: string, maxWords: number = 3): string {
+    const words = name.split(/\s+/);
+    if (words.length <= maxWords) return name;
+    return words.slice(0, maxWords).join(' ') + '…';
+}
+
 const MAX_MONITOR_ZONES = 3;
 
 export default function GeofencePanel({
     zones, selectedZoneId, trackerLabels,
-    onSelectZone, onCreateZone, onDeleteZone, onStartDrawing, onCancelDrawing,
+    onSelectZone, onCreateZone, onStartDrawing, onCancelDrawing,
     drawnPayload, monitoredZoneIds = [], onMonitorZones,
     region = 'TZ', onRefresh, viewMode = 'unlocked'
 }: GeofencePanelProps) {
@@ -67,7 +74,7 @@ export default function GeofencePanel({
         radius: 1000, // default meter
     });
     const [saving, setSaving] = useState(false);
-    const [deleting, setDeleting] = useState(false);
+
     const [showVehicleToast, setShowVehicleToast] = useState(false);
 
     // Selection for monitoring - always available
@@ -109,12 +116,7 @@ export default function GeofencePanel({
         setView('detail');
     };
 
-    const handleDelete = async (zoneId: number) => {
-        setDeleting(true);
-        await onDeleteZone(zoneId);
-        setDeleting(false);
-        setView('list');
-    };
+
 
     const handleStartDraw = () => {
         onStartDrawing(createForm.type);
@@ -240,7 +242,9 @@ export default function GeofencePanel({
                                                 onClick={() => handleZoneClick(zone.id)}
                                             >
                                                 {categoryIcons[zone.category]}
-                                                <span className="text-sm font-medium text-slate-800 truncate">{zone.name}</span>
+                                                <span className="text-sm font-medium text-slate-800 truncate" title={zone.name}>
+                                                    {truncateToWords(zone.name, 3)}
+                                                </span>
                                                 {isMonitored && (
                                                     <span title="Currently monitored">
                                                         <Eye size={12} className="text-blue-500" />
@@ -595,19 +599,59 @@ export default function GeofencePanel({
                             </div>
                         </div>
                     )}
+
+                    {/* Recent Exits Section - Always visible */}
+                    <div className="mt-6 pt-4 border-t border-dashed border-slate-200">
+                        <h3 className="text-[10px] items-center gap-1.5 flex font-bold text-slate-400 uppercase tracking-wider mb-3">
+                            <LogOut size={10} /> Recent Exits (Last 1 Hour)
+                        </h3>
+                        {selectedZone.recentExits && Object.keys(selectedZone.recentExits).length > 0 ? (
+                            <div className="space-y-1.5 animate-in fade-in slide-in-from-bottom-1 duration-300">
+                                {Object.values(selectedZone.recentExits)
+                                    .sort((a, b) => b.exitTime - a.exitTime)
+                                    .map(exitData => {
+                                        const now = Date.now();
+                                        const timeSinceExit = now - exitData.exitTime;
+
+                                        const formatTimeSince = (ms: number) => {
+                                            const mins = Math.floor(ms / 60000);
+                                            if (mins < 1) return 'Just now';
+                                            if (mins < 60) return `${mins}m ago`;
+                                            return `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
+                                        };
+
+                                        return (
+                                            <div
+                                                key={`exit-${exitData.trackerId}`}
+                                                className="flex items-center justify-between p-2.5 bg-slate-50/50 rounded-lg border border-dashed border-slate-200 opacity-70 hover:opacity-90 transition-opacity"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-medium text-slate-600">
+                                                            {trackerLabels[exitData.trackerId] || `Tracker #${exitData.trackerId}`}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400">
+                                                            Was inside for {Math.floor((exitData.exitTime - exitData.entryTime) / 60000)}m
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-[10px] font-bold text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-100">
+                                                    {formatTimeSince(timeSinceExit)}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        ) : (
+                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-100 text-center">
+                                <p className="text-xs text-slate-400">No recent exits detected</p>
+                                <p className="text-[10px] text-slate-300 mt-1">Vehicles that leave this zone will appear here for 1 hour</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {viewMode === 'unlocked' && (
-                    <div className="p-4 border-t border-gray-100">
-                        <button
-                            onClick={() => handleDelete(selectedZone.id)}
-                            disabled={deleting}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 disabled:opacity-50 transition-colors"
-                        >
-                            <Trash2 size={12} /> {deleting ? 'Deleting...' : 'Delete Zone from Navixy'}
-                        </button>
-                    </div>
-                )}
 
                 {showVehicleToast && (
                     <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-4 py-2 rounded-lg shadow-lg z-50 whitespace-nowrap animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-none">

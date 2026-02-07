@@ -16,7 +16,12 @@ export interface Geofence {
     vehicleCount: number;
     vehicleIds: number[];
     occupants: Record<number, GeofenceOccupant>; // map of trackerId -> occupant data
+    recentExits?: Record<number, GeofenceExit>; // map of trackerId -> exit data (last 1 hour)
     share_token?: string;
+}
+
+export interface GeofenceExit extends GeofenceOccupant {
+    exitTime: number; // Timestamp (ms)
 }
 
 export interface GeofenceOccupant {
