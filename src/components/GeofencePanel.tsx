@@ -5,7 +5,7 @@ import {
     MapPin, Plus, Clock, ArrowLeft,
     Anchor, Files, Warehouse, Truck, Target,
     Hexagon, Route, Circle,
-    Eye, Check, X, Square, RefreshCw, LogOut
+    Eye, Check, X, Square, RefreshCw
 } from 'lucide-react';
 import type { Geofence, CreateZonePayload, GeofenceCategory } from '../types/geofence';
 
@@ -600,56 +600,7 @@ export default function GeofencePanel({
                         </div>
                     )}
 
-                    {/* Recent Exits Section - Always visible */}
-                    <div className="mt-6 pt-4 border-t border-dashed border-slate-200">
-                        <h3 className="text-[10px] items-center gap-1.5 flex font-bold text-slate-400 uppercase tracking-wider mb-3">
-                            <LogOut size={10} /> Recent Exits (Last 1 Hour)
-                        </h3>
-                        {selectedZone.recentExits && Object.keys(selectedZone.recentExits).length > 0 ? (
-                            <div className="space-y-1.5 animate-in fade-in slide-in-from-bottom-1 duration-300">
-                                {Object.values(selectedZone.recentExits)
-                                    .sort((a, b) => b.exitTime - a.exitTime)
-                                    .map(exitData => {
-                                        const now = Date.now();
-                                        const timeSinceExit = now - exitData.exitTime;
-
-                                        const formatTimeSince = (ms: number) => {
-                                            const mins = Math.floor(ms / 60000);
-                                            if (mins < 1) return 'Just now';
-                                            if (mins < 60) return `${mins}m ago`;
-                                            return `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
-                                        };
-
-                                        return (
-                                            <div
-                                                key={`exit-${exitData.trackerId}`}
-                                                className="flex items-center justify-between p-2.5 bg-slate-50/50 rounded-lg border border-dashed border-slate-200 opacity-70 hover:opacity-90 transition-opacity"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-medium text-slate-600">
-                                                            {trackerLabels[exitData.trackerId] || `Tracker #${exitData.trackerId}`}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-400">
-                                                            Was inside for {Math.floor((exitData.exitTime - exitData.entryTime) / 60000)}m
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="text-[10px] font-bold text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-100">
-                                                    {formatTimeSince(timeSinceExit)}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                            </div>
-                        ) : (
-                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-100 text-center">
-                                <p className="text-xs text-slate-400">No recent exits detected</p>
-                                <p className="text-[10px] text-slate-300 mt-1">Vehicles that leave this zone will appear here for 1 hour</p>
-                            </div>
-                        )}
-                    </div>
+                    {/* Recent Exits Section - Temporarily removed, will be added back later */}
                 </div>
 
 
