@@ -354,7 +354,7 @@ export default function RealtimeMap({
                     el.innerHTML = getMarkerSVG(status, statusColor, state.gps.heading);
 
                     const popupHTML = getPopupHTML(id, label, speed, state.gps.heading, state.last_update, statusText, statusBgClass, status);
-                    const popup = new mapboxgl.Popup({ offset: 15, closeButton: true, closeOnClick: false, maxWidth: '300px', className: 'custom-mapbox-popup' }).setHTML(popupHTML);
+                    const popup = new mapboxgl.Popup({ offset: 15, closeButton: true, closeOnClick: true, maxWidth: '300px', className: 'custom-mapbox-popup' }).setHTML(popupHTML);
                     marker = new mapboxgl.Marker({ element: el }).setLngLat([lng, lat]).setPopup(popup).addTo(map.current!);
                     markersRef.current[id] = marker;
                 }
